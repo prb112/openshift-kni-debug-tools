@@ -1,0 +1,21 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
+aliases:
+  debug-tools-reviewers:
+    - MarSik
+    - fedepaol
+    - SchSeba
+    - fromanirh
+    - cynepco3hahue
+    - yanirq
+    - marcel-apf
+    - swatisehgal
+  debug-tools-approvers:
+    - MarSik
+    - fedepaol
+    - SchSeba
+    - fromanirh
+    - cynepco3hahue
+    - yanirq
+    - marcel-apf
+    - swatisehgal
