@@ -36,11 +36,9 @@ type knitOptions struct {
 	log   *log.Logger
 }
 
-var knitOpts knitOptions
-
 // NewRootCommand returns entrypoint command to interact with all other commands
 func NewRootCommand() *cobra.Command {
-
+	knitOpts := &knitOptions{}
 	root := &cobra.Command{
 		Use:   "knit",
 		Short: "knit allows to check system settings for low-latency workload",
@@ -73,8 +71,8 @@ func NewRootCommand() *cobra.Command {
 	root.PersistentFlags().BoolVarP(&knitOpts.debug, "debug", "D", false, "enable debug log")
 
 	root.AddCommand(
-		newCPUAffinityCommand(),
-		newIRQAffinityCommand(),
+		newCPUAffinityCommand(knitOpts),
+		newIRQAffinityCommand(knitOpts),
 	)
 
 	return root

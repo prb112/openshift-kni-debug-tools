@@ -27,26 +27,28 @@ import (
 )
 
 type irqAffOptions struct {
-	checkEffective bool
-	checkSoftirqs  bool
+	checkEffective  bool
+	checkSoftirqs   bool
+	showEmptySource bool
 }
 
-func newIRQAffinityCommand() *cobra.Command {
+func newIRQAffinityCommand(knitOpts *knitOptions) *cobra.Command {
 	opts := &irqAffOptions{}
 	irqAff := &cobra.Command{
 		Use:   "irqaff",
 		Short: "show IRQ/softirq thread affinities",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return showIRQAffinity(cmd, opts, args)
+			return showIRQAffinity(cmd, knitOpts, opts, args)
 		},
 		Args: cobra.NoArgs,
 	}
 	irqAff.Flags().BoolVarP(&opts.checkEffective, "effective-affinity", "E", false, "check effective affinity.")
 	irqAff.Flags().BoolVarP(&opts.checkSoftirqs, "softirqs", "s", false, "check softirqs counters.")
+	irqAff.Flags().BoolVarP(&opts.showEmptySource, "show-empty-source", "e", false, "show infos if IRQ source is not reported.")
 	return irqAff
 }
 
-func showIRQAffinity(cmd *cobra.Command, opts *irqAffOptions, args []string) error {
+func showIRQAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *irqAffOptions, args []string) error {
 	if opts.checkSoftirqs {
 		sh := softirqs.New(knitOpts.log, knitOpts.procFSRoot)
 		info, err := sh.ReadInfo()
@@ -69,7 +71,7 @@ func showIRQAffinity(cmd *cobra.Command, opts *irqAffOptions, args []string) err
 			return fmt.Errorf("error parsing irqs from %q: %v", knitOpts.procFSRoot, err)
 		}
 
-		dumpIrqInfo(irqInfos, knitOpts.cpus)
+		dumpIrqInfo(irqInfos, knitOpts.cpus, opts.showEmptySource)
 	}
 
 	return nil
@@ -77,10 +79,14 @@ func showIRQAffinity(cmd *cobra.Command, opts *irqAffOptions, args []string) err
 
 // dumpIrqInfo displays on stdout the (sorted) list of IRQs, showing for each IRQ the
 // IRQ source name and the (sorted) cpuset on which each IRQ may be served.
-func dumpIrqInfo(infos []irqs.Info, cpus cpuset.CPUSet) {
+// note that IRQs without valid source aren't shown in /proc/cpuinfo. Hence add the showEmptySource bool to toggle them on/off
+func dumpIrqInfo(infos []irqs.Info, cpus cpuset.CPUSet, showEmptySource bool) {
 	for _, irqInfo := range infos {
 		cpus := irqInfo.CPUs.Intersection(cpus)
 		if cpus.Size() == 0 {
+			continue
+		}
+		if irqInfo.Source == "" && !showEmptySource {
 			continue
 		}
 		fmt.Printf("IRQ %3d [%24s]: can run on %v\n", irqInfo.IRQ, irqInfo.Source, cpus.String())
