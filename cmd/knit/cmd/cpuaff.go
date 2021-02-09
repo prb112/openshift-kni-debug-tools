@@ -31,13 +31,13 @@ type cpuAffOptions struct {
 	pidIdent string
 }
 
-func newCPUAffinityCommand() *cobra.Command {
+func newCPUAffinityCommand(knitOpts *knitOptions) *cobra.Command {
 	opts := &cpuAffOptions{}
 	cpuAff := &cobra.Command{
 		Use:   "cpuaff",
 		Short: "show cpu thread affinities",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return showCPUAffinity(cmd, opts, args)
+			return showCPUAffinity(cmd, knitOpts, opts, args)
 		},
 		Args: cobra.NoArgs,
 	}
@@ -45,7 +45,7 @@ func newCPUAffinityCommand() *cobra.Command {
 	return cpuAff
 }
 
-func showCPUAffinity(cmd *cobra.Command, opts *cpuAffOptions, args []string) error {
+func showCPUAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *cpuAffOptions, args []string) error {
 	ph := procs.New(knitOpts.log, knitOpts.procFSRoot)
 
 	if opts.pidIdent != "" {
