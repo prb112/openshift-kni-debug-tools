@@ -78,6 +78,19 @@ func (S Stats) Clone() Stats {
 	return R
 }
 
+func (S Stats) ForCPUs(cpus cpuset.CPUSet) Stats {
+	res := make(Stats)
+	cpuids := cpus.ToSlice()
+	for _, cpuid := range cpuids {
+		counter, ok := S[cpuid]
+		if !ok || len(counter) == 0 {
+			continue
+		}
+		res[cpuid] = counter
+	}
+	return res
+}
+
 type Info struct {
 	Source string
 	IRQ    int
