@@ -17,7 +17,9 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"sort"
 	"strconv"
 
@@ -45,6 +47,22 @@ func newCPUAffinityCommand(knitOpts *knitOptions) *cobra.Command {
 	return cpuAff
 }
 
+type runnable struct {
+	PID         int    `json:"pid"`
+	TID         int    `json:"tid"`
+	ProcessName string `json:"process"`
+	ThreadName  string `json:"thread"`
+	CPUAffinity []int  `json:"affinity"`
+}
+
+func (ru runnable) String() string {
+	// see: https://man7.org/linux/man-pages/man3/pthread_setname_np.3.html
+	// "The thread name is a meaningful C language string, whose length is restricted to 16 characters,
+	// including the terminating null byte"
+	// for process names howevwver we just pick a "usually long enough" format value
+	return fmt.Sprintf("PID %6d (%-32s) TID %6d (%-16s) can run on %v", ru.PID, ru.ProcessName, ru.TID, ru.ThreadName, ru.CPUAffinity)
+}
+
 func showCPUAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *cpuAffOptions, args []string) error {
 	ph := procs.New(knitOpts.log, knitOpts.procFSRoot)
 
@@ -70,6 +88,7 @@ func showCPUAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *cpuAffOpti
 		return fmt.Errorf("error getting process infos from %q: %v", knitOpts.procFSRoot, err)
 	}
 
+	var runnables []runnable
 	for _, pid := range sortedPids(procInfos) {
 		procInfo := procInfos[pid]
 
@@ -81,11 +100,21 @@ func showCPUAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *cpuAffOpti
 			if cpus.Size() == 0 {
 				continue
 			}
-			// see: https://man7.org/linux/man-pages/man3/pthread_setname_np.3.html
-			// "The thread name is a meaningful C language string, whose length is restricted to 16 characters,
-			// including the terminating null byte"
-			// for process names howevwver we just pick a "usually long enough" format value
-			fmt.Printf("PID %6d (%-32s) TID %6d (%-16s) can run on %v\n", pid, procInfo.Name, tid, tidInfo.Name, cpus.String())
+			runnables = append(runnables, runnable{
+				PID:         pid,
+				TID:         tid,
+				ProcessName: procInfo.Name,
+				ThreadName:  tidInfo.Name,
+				CPUAffinity: cpus.ToSlice(),
+			})
+		}
+	}
+
+	if knitOpts.jsonOutput {
+		json.NewEncoder(os.Stdout).Encode(runnables)
+	} else {
+		for _, runnable := range runnables {
+			fmt.Println(runnable.String())
 		}
 	}
 	return nil

@@ -30,15 +30,15 @@ import (
 )
 
 type TIDInfo struct {
-	Tid      int
-	Name     string
-	Affinity []int
+	Tid      int    `json:"tid"`
+	Name     string `json:"name"`
+	Affinity []int  `json:"affinity"`
 }
 
 type PIDInfo struct {
-	Pid  int
-	Name string
-	TIDs map[int]TIDInfo
+	Pid  int             `json:"pid"`
+	Name string          `json:"name"`
+	TIDs map[int]TIDInfo `json:"threads"`
 }
 
 type Handler struct {
