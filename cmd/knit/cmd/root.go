@@ -73,6 +73,7 @@ func NewRootCommand() *cobra.Command {
 	root.AddCommand(
 		newCPUAffinityCommand(knitOpts),
 		newIRQAffinityCommand(knitOpts),
+		newPodResourcesCommand(knitOpts),
 	)
 
 	return root
