@@ -34,7 +34,7 @@ type irqAffOptions struct {
 	showEmptySource bool
 }
 
-func newIRQAffinityCommand(knitOpts *knitOptions) *cobra.Command {
+func NewIRQAffinityCommand(knitOpts *KnitOptions) *cobra.Command {
 	opts := &irqAffOptions{}
 	irqAff := &cobra.Command{
 		Use:   "irqaff",
@@ -73,8 +73,8 @@ func (sa softirqAffinity) String() string {
 	return fmt.Sprintf("%8s = %v", sa.SoftIRQ, sa.CPUAffinity)
 }
 
-func showIRQAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *irqAffOptions, args []string) error {
-	ih := irqs.New(knitOpts.log, knitOpts.procFSRoot)
+func showIRQAffinity(cmd *cobra.Command, knitOpts *KnitOptions, opts *irqAffOptions, args []string) error {
+	ih := irqs.New(knitOpts.Log, knitOpts.ProcFSRoot)
 
 	flags := uint(0)
 	if opts.checkEffective {
@@ -83,12 +83,12 @@ func showIRQAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *irqAffOpti
 
 	irqInfos, err := ih.ReadInfo(flags)
 	if err != nil {
-		return fmt.Errorf("error parsing irqs from %q: %v", knitOpts.procFSRoot, err)
+		return fmt.Errorf("error parsing irqs from %q: %v", knitOpts.ProcFSRoot, err)
 	}
 
 	var irqAffinities []irqAffinity
 	for _, irqInfo := range irqInfos {
-		cpus := irqInfo.CPUs.Intersection(knitOpts.cpus)
+		cpus := irqInfo.CPUs.Intersection(knitOpts.Cpus)
 		if cpus.Size() == 0 {
 			continue
 		}
@@ -102,7 +102,7 @@ func showIRQAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *irqAffOpti
 		})
 	}
 
-	if knitOpts.jsonOutput {
+	if knitOpts.JsonOutput {
 		json.NewEncoder(os.Stdout).Encode(irqAffinities)
 	} else {
 		for _, irqAffinity := range irqAffinities {
@@ -112,12 +112,12 @@ func showIRQAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *irqAffOpti
 	return nil
 }
 
-func showSoftIRQAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *irqAffOptions, args []string) error {
-	sh := softirqs.New(knitOpts.log, knitOpts.procFSRoot)
+func showSoftIRQAffinity(cmd *cobra.Command, knitOpts *KnitOptions, opts *irqAffOptions, args []string) error {
+	sh := softirqs.New(knitOpts.Log, knitOpts.ProcFSRoot)
 	info, err := sh.ReadInfo()
 
 	if err != nil {
-		return fmt.Errorf("error parsing softirqs from %q: %v", knitOpts.procFSRoot, err)
+		return fmt.Errorf("error parsing softirqs from %q: %v", knitOpts.ProcFSRoot, err)
 	}
 
 	var softirqAffinities []softirqAffinity
@@ -130,7 +130,7 @@ func showSoftIRQAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *irqAff
 				cb.Add(idx)
 			}
 		}
-		usedCPUs := knitOpts.cpus.Intersection(cb.Result())
+		usedCPUs := knitOpts.Cpus.Intersection(cb.Result())
 
 		softirqAffinities = append(softirqAffinities, softirqAffinity{
 			SoftIRQ:     key,
@@ -138,7 +138,7 @@ func showSoftIRQAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *irqAff
 		})
 	}
 
-	if knitOpts.jsonOutput {
+	if knitOpts.JsonOutput {
 		json.NewEncoder(os.Stdout).Encode(softirqAffinities)
 	} else {
 		for _, softirqAffinity := range softirqAffinities {

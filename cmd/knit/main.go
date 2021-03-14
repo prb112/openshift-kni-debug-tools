@@ -20,16 +20,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/openshift-kni/debug-tools/cmd/knit/cmd"
+	"github.com/openshift-kni/debug-tools/pkg/knit/cmd"
 )
 
-func expectNoError(err error) {
-	if err != nil {
+func main() {
+	if err := cmd.NewRootCommand().Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
-}
-
-func main() {
-	expectNoError(cmd.NewRootCommand().Execute())
 }
