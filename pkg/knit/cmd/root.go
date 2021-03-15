@@ -41,8 +41,10 @@ func ShowHelp(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+type NewCommandFunc func(ko *KnitOptions) *cobra.Command
+
 // NewRootCommand returns entrypoint command to interact with all other commands
-func NewRootCommand() *cobra.Command {
+func NewRootCommand(extraCmds ...NewCommandFunc) *cobra.Command {
 	knitOpts := &KnitOptions{}
 
 	root := &cobra.Command{
@@ -82,6 +84,9 @@ func NewRootCommand() *cobra.Command {
 		NewIRQAffinityCommand(knitOpts),
 		NewPodResourcesCommand(knitOpts),
 	)
+	for _, extraCmd := range extraCmds {
+		root.AddCommand(extraCmd(knitOpts))
+	}
 
 	return root
 
