@@ -81,6 +81,7 @@ func NewRootCommand() *cobra.Command {
 		NewCPUAffinityCommand(knitOpts),
 		NewIRQAffinityCommand(knitOpts),
 		NewPodResourcesCommand(knitOpts),
+		NewWaitCommand(knitOpts),
 	)
 
 	return root
