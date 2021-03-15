@@ -26,40 +26,45 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
-type knitOptions struct {
+type KnitOptions struct {
+	Cpus       cpuset.CPUSet
+	ProcFSRoot string
+	SysFSRoot  string
+	JsonOutput bool
+	Debug      bool
+	Log        *log.Logger
 	cpuList    string
-	cpus       cpuset.CPUSet
-	procFSRoot string
-	sysFSRoot  string
+}
 
-	jsonOutput bool
-	debug      bool
-	log        *log.Logger
+func ShowHelp(cmd *cobra.Command, args []string) error {
+	fmt.Fprint(cmd.OutOrStderr(), cmd.UsageString())
+	return nil
 }
 
 // NewRootCommand returns entrypoint command to interact with all other commands
 func NewRootCommand() *cobra.Command {
-	knitOpts := &knitOptions{}
+	knitOpts := &KnitOptions{}
+
 	root := &cobra.Command{
 		Use:   "knit",
 		Short: "knit allows to check system settings for low-latency workload",
 
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			var err error
-			knitOpts.cpus, err = cpuset.Parse(knitOpts.cpuList)
+			knitOpts.Cpus, err = cpuset.Parse(knitOpts.cpuList)
 			if err != nil {
 				return fmt.Errorf("error parsing %q: %v", knitOpts.cpuList, err)
 			}
 
-			if knitOpts.debug {
-				knitOpts.log = log.New(os.Stderr, "knit", log.LstdFlags)
+			if knitOpts.Debug {
+				knitOpts.Log = log.New(os.Stderr, "knit", log.LstdFlags)
 			} else {
-				knitOpts.log = log.New(ioutil.Discard, "", 0)
+				knitOpts.Log = log.New(ioutil.Discard, "", 0)
 			}
 			return nil
 		},
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprint(cmd.OutOrStderr(), cmd.UsageString())
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return ShowHelp(cmd, args)
 		},
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -67,15 +72,15 @@ func NewRootCommand() *cobra.Command {
 
 	// see https://man7.org/linux/man-pages/man7/cpuset.7.html#FORMATS for more details
 	root.PersistentFlags().StringVarP(&knitOpts.cpuList, "cpulist", "C", "0-16383", "isolated cpu set to check (see man (7) cpuset - List format")
-	root.PersistentFlags().StringVarP(&knitOpts.procFSRoot, "procfs", "P", "/proc", "procfs root")
-	root.PersistentFlags().StringVarP(&knitOpts.sysFSRoot, "sysfs", "S", "/sys", "sysfs root")
-	root.PersistentFlags().BoolVarP(&knitOpts.debug, "debug", "D", false, "enable debug log")
-	root.PersistentFlags().BoolVarP(&knitOpts.jsonOutput, "json", "J", false, "output as JSON")
+	root.PersistentFlags().StringVarP(&knitOpts.ProcFSRoot, "procfs", "P", "/proc", "procfs root")
+	root.PersistentFlags().StringVarP(&knitOpts.SysFSRoot, "sysfs", "S", "/sys", "sysfs root")
+	root.PersistentFlags().BoolVarP(&knitOpts.Debug, "debug", "D", false, "enable debug log")
+	root.PersistentFlags().BoolVarP(&knitOpts.JsonOutput, "json", "J", false, "output as JSON")
 
 	root.AddCommand(
-		newCPUAffinityCommand(knitOpts),
-		newIRQAffinityCommand(knitOpts),
-		newPodResourcesCommand(knitOpts),
+		NewCPUAffinityCommand(knitOpts),
+		NewIRQAffinityCommand(knitOpts),
+		NewPodResourcesCommand(knitOpts),
 	)
 
 	return root

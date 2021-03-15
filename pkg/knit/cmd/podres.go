@@ -41,7 +41,7 @@ type podResOptions struct {
 	socketPath string
 }
 
-func newPodResourcesCommand(knitOpts *knitOptions) *cobra.Command {
+func NewPodResourcesCommand(knitOpts *KnitOptions) *cobra.Command {
 	opts := &podResOptions{}
 	podRes := &cobra.Command{
 		Use:   "podres",

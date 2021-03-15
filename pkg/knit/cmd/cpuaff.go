@@ -33,7 +33,7 @@ type cpuAffOptions struct {
 	pidIdent string
 }
 
-func newCPUAffinityCommand(knitOpts *knitOptions) *cobra.Command {
+func NewCPUAffinityCommand(knitOpts *KnitOptions) *cobra.Command {
 	opts := &cpuAffOptions{}
 	cpuAff := &cobra.Command{
 		Use:   "cpuaff",
@@ -63,8 +63,8 @@ func (ru runnable) String() string {
 	return fmt.Sprintf("PID %6d (%-32s) TID %6d (%-16s) can run on %v", ru.PID, ru.ProcessName, ru.TID, ru.ThreadName, ru.CPUAffinity)
 }
 
-func showCPUAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *cpuAffOptions, args []string) error {
-	ph := procs.New(knitOpts.log, knitOpts.procFSRoot)
+func showCPUAffinity(cmd *cobra.Command, knitOpts *KnitOptions, opts *cpuAffOptions, args []string) error {
+	ph := procs.New(knitOpts.Log, knitOpts.ProcFSRoot)
 
 	if opts.pidIdent != "" {
 		pid, err := strconv.Atoi(opts.pidIdent)
@@ -75,7 +75,7 @@ func showCPUAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *cpuAffOpti
 		for tid, tidInfo := range procInfo.TIDs {
 			threadCpus := cpuset.NewCPUSet(tidInfo.Affinity...)
 
-			cpus := threadCpus.Intersection(knitOpts.cpus)
+			cpus := threadCpus.Intersection(knitOpts.Cpus)
 			if cpus.Size() != 0 {
 				fmt.Printf("PID %6d TID %6d can run on %v\n", pid, tid, cpus.String())
 			}
@@ -85,7 +85,7 @@ func showCPUAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *cpuAffOpti
 
 	procInfos, err := ph.ListAll()
 	if err != nil {
-		return fmt.Errorf("error getting process infos from %q: %v", knitOpts.procFSRoot, err)
+		return fmt.Errorf("error getting process infos from %q: %v", knitOpts.ProcFSRoot, err)
 	}
 
 	var runnables []runnable
@@ -96,7 +96,7 @@ func showCPUAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *cpuAffOpti
 			tidInfo := procInfo.TIDs[tid]
 
 			threadCpus := cpuset.NewCPUSet(tidInfo.Affinity...)
-			cpus := threadCpus.Intersection(knitOpts.cpus)
+			cpus := threadCpus.Intersection(knitOpts.Cpus)
 			if cpus.Size() == 0 {
 				continue
 			}
@@ -110,7 +110,7 @@ func showCPUAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *cpuAffOpti
 		}
 	}
 
-	if knitOpts.jsonOutput {
+	if knitOpts.JsonOutput {
 		json.NewEncoder(os.Stdout).Encode(runnables)
 	} else {
 		for _, runnable := range runnables {
