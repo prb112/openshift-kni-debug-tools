@@ -32,8 +32,9 @@ type knitOptions struct {
 	procFSRoot string
 	sysFSRoot  string
 
-	debug bool
-	log   *log.Logger
+	jsonOutput bool
+	debug      bool
+	log        *log.Logger
 }
 
 // NewRootCommand returns entrypoint command to interact with all other commands
@@ -69,6 +70,7 @@ func NewRootCommand() *cobra.Command {
 	root.PersistentFlags().StringVarP(&knitOpts.procFSRoot, "procfs", "P", "/proc", "procfs root")
 	root.PersistentFlags().StringVarP(&knitOpts.sysFSRoot, "sysfs", "S", "/sys", "sysfs root")
 	root.PersistentFlags().BoolVarP(&knitOpts.debug, "debug", "D", false, "enable debug log")
+	root.PersistentFlags().BoolVarP(&knitOpts.jsonOutput, "json", "J", false, "output as JSON")
 
 	root.AddCommand(
 		newCPUAffinityCommand(knitOpts),

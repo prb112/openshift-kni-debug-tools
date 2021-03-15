@@ -17,7 +17,9 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -38,7 +40,11 @@ func newIRQAffinityCommand(knitOpts *knitOptions) *cobra.Command {
 		Use:   "irqaff",
 		Short: "show IRQ/softirq thread affinities",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return showIRQAffinity(cmd, knitOpts, opts, args)
+			if opts.checkSoftirqs {
+				return showSoftIRQAffinity(cmd, knitOpts, opts, args)
+			} else {
+				return showIRQAffinity(cmd, knitOpts, opts, args)
+			}
 		},
 		Args: cobra.NoArgs,
 	}
@@ -48,54 +54,73 @@ func newIRQAffinityCommand(knitOpts *knitOptions) *cobra.Command {
 	return irqAff
 }
 
-func showIRQAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *irqAffOptions, args []string) error {
-	if opts.checkSoftirqs {
-		sh := softirqs.New(knitOpts.log, knitOpts.procFSRoot)
-		info, err := sh.ReadInfo()
-
-		if err != nil {
-			return fmt.Errorf("error parsing softirqs from %q: %v", knitOpts.procFSRoot, err)
-		}
-
-		dumpSoftirqInfo(info, knitOpts.cpus)
-	} else {
-		ih := irqs.New(knitOpts.log, knitOpts.procFSRoot)
-
-		flags := uint(0)
-		if opts.checkEffective {
-			flags |= irqs.EffectiveAffinity
-		}
-
-		irqInfos, err := ih.ReadInfo(flags)
-		if err != nil {
-			return fmt.Errorf("error parsing irqs from %q: %v", knitOpts.procFSRoot, err)
-		}
-
-		dumpIrqInfo(irqInfos, knitOpts.cpus, opts.showEmptySource)
-	}
-
-	return nil
+type irqAffinity struct {
+	IRQ         int    `json:"irq"`
+	Source      string `json:"source"`
+	CPUAffinity []int  `json:"affinity"`
 }
 
-// dumpIrqInfo displays on stdout the (sorted) list of IRQs, showing for each IRQ the
-// IRQ source name and the (sorted) cpuset on which each IRQ may be served.
-// note that IRQs without valid source aren't shown in /proc/cpuinfo. Hence add the showEmptySource bool to toggle them on/off
-func dumpIrqInfo(infos []irqs.Info, cpus cpuset.CPUSet, showEmptySource bool) {
-	for _, irqInfo := range infos {
-		cpus := irqInfo.CPUs.Intersection(cpus)
+func (ia irqAffinity) String() string {
+	return fmt.Sprintf("IRQ %3d [%24s]: can run on %v", ia.IRQ, ia.Source, ia.CPUAffinity)
+}
+
+type softirqAffinity struct {
+	SoftIRQ     string `json:"softirq"`
+	CPUAffinity []int  `json:"affinity"`
+}
+
+func (sa softirqAffinity) String() string {
+	return fmt.Sprintf("%8s = %v", sa.SoftIRQ, sa.CPUAffinity)
+}
+
+func showIRQAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *irqAffOptions, args []string) error {
+	ih := irqs.New(knitOpts.log, knitOpts.procFSRoot)
+
+	flags := uint(0)
+	if opts.checkEffective {
+		flags |= irqs.EffectiveAffinity
+	}
+
+	irqInfos, err := ih.ReadInfo(flags)
+	if err != nil {
+		return fmt.Errorf("error parsing irqs from %q: %v", knitOpts.procFSRoot, err)
+	}
+
+	var irqAffinities []irqAffinity
+	for _, irqInfo := range irqInfos {
+		cpus := irqInfo.CPUs.Intersection(knitOpts.cpus)
 		if cpus.Size() == 0 {
 			continue
 		}
-		if irqInfo.Source == "" && !showEmptySource {
+		if irqInfo.Source == "" && !opts.showEmptySource {
 			continue
 		}
-		fmt.Printf("IRQ %3d [%24s]: can run on %v\n", irqInfo.IRQ, irqInfo.Source, cpus.String())
+		irqAffinities = append(irqAffinities, irqAffinity{
+			IRQ:         irqInfo.IRQ,
+			Source:      irqInfo.Source,
+			CPUAffinity: cpus.ToSlice(),
+		})
 	}
+
+	if knitOpts.jsonOutput {
+		json.NewEncoder(os.Stdout).Encode(irqAffinities)
+	} else {
+		for _, irqAffinity := range irqAffinities {
+			fmt.Println(irqAffinity.String())
+		}
+	}
+	return nil
 }
 
-// dumpSoftirqInfo displays on stdout the (sorted) list of softirqs, showing for each softirq the
-// (sorted) cpuset on which each softirq was served in the past.
-func dumpSoftirqInfo(info *softirqs.Info, cpus cpuset.CPUSet) {
+func showSoftIRQAffinity(cmd *cobra.Command, knitOpts *knitOptions, opts *irqAffOptions, args []string) error {
+	sh := softirqs.New(knitOpts.log, knitOpts.procFSRoot)
+	info, err := sh.ReadInfo()
+
+	if err != nil {
+		return fmt.Errorf("error parsing softirqs from %q: %v", knitOpts.procFSRoot, err)
+	}
+
+	var softirqAffinities []softirqAffinity
 	keys := softirqs.Names()
 	for _, key := range keys {
 		counters := info.Counters[key]
@@ -105,7 +130,20 @@ func dumpSoftirqInfo(info *softirqs.Info, cpus cpuset.CPUSet) {
 				cb.Add(idx)
 			}
 		}
-		usedCPUs := cpus.Intersection(cb.Result())
-		fmt.Printf("%8s = %s\n", key, usedCPUs.String())
+		usedCPUs := knitOpts.cpus.Intersection(cb.Result())
+
+		softirqAffinities = append(softirqAffinities, softirqAffinity{
+			SoftIRQ:     key,
+			CPUAffinity: usedCPUs.ToSlice(),
+		})
 	}
+
+	if knitOpts.jsonOutput {
+		json.NewEncoder(os.Stdout).Encode(softirqAffinities)
+	} else {
+		for _, softirqAffinity := range softirqAffinities {
+			fmt.Println(softirqAffinity.String())
+		}
+	}
+	return nil
 }
