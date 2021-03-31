@@ -5,6 +5,12 @@ IMAGETAG ?= latest
 
 all: dist
 
+.PHONY: build
+build: dist
+
+.PHONY: ci-job
+ci-job: test-e2e-knit
+
 outdir:
 	mkdir -p _output || :
 
