@@ -44,6 +44,13 @@ push: image
 	@echo "pushing image"
 	$(RUNTIME) push quay.io/$(REPOOWNER)/$(IMAGENAME):$(IMAGETAG)
 
+.PHONY: test-unit
+test-unit: test-unit-pkg
+
+.PHONY: test-unit-pkg
+test-unit-pkg:
+	go test ./pkg/...
+
 .PHONY: test-e2e-knit
 test-e2e-knit: binaries
 	ginkgo test/e2e
