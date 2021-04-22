@@ -162,18 +162,23 @@ func parseInterrupts(logger *log.Logger, rd io.Reader) (Stats, error) {
 	src.Scan()
 	cpus := strings.Fields(src.Text())
 
-	// do NOT assume columnid == cpuid (what if we have offlined cpus?)
+	// we should never assume columnid == cpuid, because we will need to handle offlined cpus
+	// - aka holes in the sequence. Hence we use a mapping.
 	col2cpu := make(map[int]int)
 
 	stats := make(Stats)
-	for colid, cpu := range cpus {
+	// we split the line using whitespaces as separator. So the first line is something like
+	// "            CPU0       CPU1       CPU2       CPU3" (all spaces, no tabs)
+	// and the `cpus` slice is something like ["CPU0" "CPU1" "CPU2" "CPU3"]
+	for colIdx, cpu := range cpus {
 		var cpuid int
 		n, err := fmt.Sscanf(cpu, "CPU%d", &cpuid)
 		if n != 1 || err != nil {
 			return nil, fmt.Errorf("cannot parse cpu name %q: err=%v", cpu, err)
 		}
 		stats[cpuid] = make(Counter)
-		col2cpu[colid] = cpuid
+		// if all the cpus are online, this is the trivial mapping 0:0, 1:1, ...
+		col2cpu[colIdx] = cpuid
 	}
 
 	// format:
@@ -187,16 +192,22 @@ func parseInterrupts(logger *log.Logger, rd io.Reader) (Stats, error) {
 			continue
 		}
 		irqName := strings.TrimSuffix(items[0], ":")
-		for colid, item := range items[1:maxCols] {
+		// so from now on we consider only len(cpus) columns, shifted by one to the left
+		//                [ "0:" "13" "0" "0" "0" "IR-IO-APIC" "2-edge" "timer"]
+		// column index:    0    1    2   3   4   5            6        7
+		//                  |----+                ============================ we don't care about this
+		//                       |----|---|---|
+		//                                    `- we only care about 1 + len(cpus) = 4 = 5 columns
+		// `cpuColIdx`:    {skip} 0   1   2   3
+		for cpuColIdx, item := range items[1:maxCols] {
 			count, err := strconv.ParseUint(item, 10, 64)
 			if err != nil {
 				log.Printf("Error parsing interrupts info from %q: %v", item, err)
 				continue
 			}
 
-			// column 0 is always the IRQ name
-			cpuid := col2cpu[colid-1]
-			stats[cpuid][irqName] = count
+			cpuId := col2cpu[cpuColIdx]
+			stats[cpuId][irqName] = count
 		}
 	}
 	return stats, nil
