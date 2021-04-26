@@ -17,6 +17,7 @@
 package irqs_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -49,21 +50,35 @@ func TestReadStats(t *testing.T) {
 		t.Errorf("ReadStats(%s) failed: %v", procDir, err)
 	}
 
-	if !validCounters(counters) {
-		t.Errorf("Counters mismatch")
+	var irqTestCases = []struct {
+		cpuIdx  int
+		irqName string
+		value   uint64
+	}{
+		// some random non-zero values from the fakeInterrupts below.
+		// any non-zero value is fine, no special meaning.
+		{0, "131", 3949116},
+		{0, "LOC", 14926901},
+		{1, "139", 21},
+		{1, "LOC", 16283403},
+		{2, "125", 12356620},
+		{2, "LOC", 14699417},
+		{3, "12", 713},
+		{3, "LOC", 15519974},
+		// now some zero values. Same criteria as above.
+		{0, "120", 0},
+		{1, "120", 0},
+		{2, "120", 0},
+		{3, "120", 0},
 	}
-}
-
-func validCounters(counters irqs.Stats) bool {
-	// check fakeInterrupts for the magic values
-	// we check some random values atm, not all the expected values
-	if counters[3]["12"] != 713 {
-		return false
+	for _, tt := range irqTestCases {
+		t.Run(fmt.Sprintf("cpu %d irq %q", tt.cpuIdx, tt.irqName), func(t *testing.T) {
+			v := counters[tt.cpuIdx][tt.irqName]
+			if v != tt.value {
+				t.Errorf("Counters mismatch got %v expected %v", v, tt.value)
+			}
+		})
 	}
-	if counters[2]["125"] != 12356620 {
-		return false
-	}
-	return true
 }
 
 const fakeInterrupts string = `            CPU0       CPU1       CPU2       CPU3       
