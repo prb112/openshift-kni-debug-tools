@@ -27,6 +27,13 @@ import (
 	softirqs "github.com/openshift-kni/debug-tools/pkg/irqs/soft"
 )
 
+func TestNames(t *testing.T) {
+	names := softirqs.Names()
+	if names == nil || len(names) == 0 {
+		t.Fatalf("missing names")
+	}
+}
+
 var nullLog = log.New(ioutil.Discard, "", 0)
 
 func TestReadInfo(t *testing.T) {
