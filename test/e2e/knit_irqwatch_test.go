@@ -47,7 +47,8 @@ var _ = g.Describe("knit IRQ watch tests", func() {
 			c := make(chan cmdOutput)
 			go func(c chan cmdOutput) {
 				out, err := cmd.Output()
-				c <- cmdOutput{out: out,
+				c <- cmdOutput{
+					out: out,
 					err: err,
 				}
 			}(c)
@@ -79,9 +80,9 @@ var _ = g.Describe("knit IRQ watch tests", func() {
 })
 
 func modifyInterruptsFile(procFs string) (irqs.Stats, error) {
-	mockLog := log.New(ioutil.Discard, "", 0)
+	fakeLog := log.New(ioutil.Discard, "", 0)
 
-	ih := irqs.New(mockLog, procFs)
+	ih := irqs.New(fakeLog, procFs)
 	stats, err := ih.ReadStats()
 	if err != nil {
 		return nil, err
@@ -114,16 +115,13 @@ func modifyInterruptsFile(procFs string) (irqs.Stats, error) {
 }
 
 func reWriteInterrupts(procFs string, stats irqs.Stats) error {
-	tmpInterrruptsFile := filepath.Join(procFs, "interrupts_temp")
-	interrruptsFile := filepath.Join(procFs, "interrupts")
-
-	f, err := os.Create(tmpInterrruptsFile)
+	tmpf, err := ioutil.TempFile(procFs, "interrupts")
 	if err != nil {
-		g.Fail(fmt.Sprintf("fail to create temp interrupts file %q", tmpInterrruptsFile))
+		g.Fail(fmt.Sprintf("fail to create temp interrupts file %q", tmpf.Name()))
 		return err
 	}
 
-	defer f.Close()
+	defer tmpf.Close()
 
 	// Since it's a test we can assume no offlined cpu, so no holes in the slice (i.e. cpu_0 to cpu_n are presents)
 	type cpuidToIrqValue []uint64
@@ -140,53 +138,41 @@ func reWriteInterrupts(procFs string, stats irqs.Stats) error {
 		}
 	}
 
-	tab(f)
+	tmpf.WriteString("\t")
 	// write cpu ids on the first line
 	for cpuid := range cpuids {
 		cpuName := fmt.Sprintf("%11s", fmt.Sprintf("CPU%d", cpuid))
-		f.WriteString(cpuName)
+		tmpf.WriteString(cpuName)
 	}
-	newLine(f)
+	tmpf.WriteString("\n")
 
 	for irqName, counters := range irqMap {
-		f.WriteString(fmt.Sprintf("%4s:", irqName))
+		tmpf.WriteString(fmt.Sprintf("%4s:", irqName))
 
 		for _, v := range counters {
-			f.WriteString(fmt.Sprintf("%11d", v))
+			tmpf.WriteString(fmt.Sprintf("%11d", v))
 		}
-		newLine(f)
+		tmpf.WriteString("\n")
 	}
 
 	// use this approach in order to avoid from other processes to access
 	// the original interrupts file while modifing it
-	os.Rename(tmpInterrruptsFile, interrruptsFile)
+	interrruptsFile := filepath.Join(procFs, "interrupts")
+	os.Rename(tmpf.Name(), interrruptsFile)
 	if err != nil {
-		g.Fail(fmt.Sprintf("fail to rename file %q to %q", tmpInterrruptsFile, interrruptsFile))
+		g.Fail(fmt.Sprintf("fail to rename file %q to %q", tmpf.Name(), interrruptsFile))
 		return err
 	}
 
 	return nil
 }
 
-func tab(f *os.File) {
-	f.WriteString("\t")
-}
-
-func newLine(f *os.File) {
-	f.WriteString("\n")
-}
-
 func selRandKey(c irqs.Counter) string {
-	//fmt.Println(len(c))
-	i := rand.Intn(len(c))
+	keys := make([]string, 0, len(c))
 	for k := range c {
-		if i == 0 {
-			return k
-		}
+		keys = append(keys, k)
 	}
-	i--
-	// default key, never expect to get here
-	return "0"
+	return keys[rand.Intn(len(keys))]
 }
 
 func getSortedCPUids(s irqs.Stats) []int {
