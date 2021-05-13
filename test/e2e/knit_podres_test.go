@@ -1,4 +1,4 @@
-package e2eknit
+package e2e
 
 import (
 	"fmt"

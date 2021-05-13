@@ -8,8 +8,16 @@ all: dist
 .PHONY: build
 build: dist
 
+# legacy CI entry point
 .PHONY: ci-job
-ci-job: test-e2e-knit
+ci-job: test-e2e
+
+# new CI entry points
+.PHONY: ci-job-e2e
+ci-job-e2e: test-e2e
+
+.PHONY: ci-job-unit
+ci-job-unit: test-unit
 
 outdir:
 	mkdir -p _output || :
@@ -51,6 +59,6 @@ test-unit: test-unit-pkg
 test-unit-pkg:
 	go test ./pkg/...
 
-.PHONY: test-e2e-knit
-test-e2e-knit: binaries
+.PHONY: test-e2e
+test-e2e: binaries
 	ginkgo test/e2e
