@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/google/go-cmp v0.5.2
-	github.com/jaypipes/ghw v0.7.0
+	github.com/jaypipes/ghw v0.8.1-0.20210605191321-eb162add542b
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.7.0
 	github.com/spf13/cobra v1.1.1

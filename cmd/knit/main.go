@@ -21,12 +21,16 @@ import (
 	"os"
 
 	"github.com/openshift-kni/debug-tools/pkg/knit/cmd"
+	"github.com/openshift-kni/debug-tools/pkg/knit/cmd/ghw"
 	"github.com/openshift-kni/debug-tools/pkg/knit/cmd/k8s"
 )
 
 func main() {
 	root := cmd.NewRootCommand(
 		k8s.NewPodResourcesCommand,
+		ghw.NewLscpuCommand,
+		ghw.NewLspciCommand,
+		ghw.NewLstopoCommand,
 	)
 	if err := root.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
