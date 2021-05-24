@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/jaypipes/ghw/pkg/snapshot"
-
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 )
@@ -66,18 +65,18 @@ func snapshotAfterEach(snapshotRoot string) {
 	}
 }
 
-func areJSONBlobsEqual(b1, b2 []byte) (bool, error) {
-	var o1 interface{}
-	var o2 interface{}
+func getJSONBlobsDiff(want, got []byte) (string, error) {
+	var wantObj interface{}
+	var gotObj interface{}
 
-	if err := json.Unmarshal(b1, &o1); err != nil {
-		return false, fmt.Errorf("Error unmarshalling string 1: %v", err)
+	if err := json.Unmarshal(want, &wantObj); err != nil {
+		return "", fmt.Errorf("Error unmarshalling data for 'want': %v", err)
 	}
-	if err := json.Unmarshal(b2, &o2); err != nil {
-		return false, fmt.Errorf("Error unmarshalling string 2: %v", err)
+	if err := json.Unmarshal(got, &gotObj); err != nil {
+		return "", fmt.Errorf("Error unmarshalling data for 'got': %v", err)
 	}
 
-	return reflect.DeepEqual(o1, o2), nil
+	return cmp.Diff(wantObj, gotObj), nil
 }
 
 func dataDirFor(name string) string {

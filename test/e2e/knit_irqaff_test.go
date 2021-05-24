@@ -45,11 +45,11 @@ var _ = g.Describe("knit IRQ affinity tests", func() {
 				g.Fail(fmt.Sprintf("fail to read the irqaff reference data from %q", refPath))
 			}
 
-			ok, err := areJSONBlobsEqual(out, expected)
+			diff, err := getJSONBlobsDiff(out, expected)
 			if err != nil {
 				g.Fail("fail to compare the irqaff reference")
 			}
-			o.Expect(ok).To(o.BeTrue())
+			o.Expect(diff).To(o.BeZero(), "unexpected JSON difference: %v", diff)
 		})
 	})
 
