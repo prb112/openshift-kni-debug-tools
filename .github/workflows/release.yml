@@ -39,22 +39,22 @@ jobs:
     - name: fix build artifacts
       run: |
         for tool in knit cpulist numalign; do
-          mv _out/$tool $tool-${{ env.RELEASE_VERSION }}-linux-amd64
+          mv _output/$tool $tool-${{ env.RELEASE_VERSION }}-linux-amd64
         done
         make clean outdir
         for tool in knit cpulist numalign; do
-          mv $tool-${{ env.RELEASE_VERSION}}-linux-amd64 _out/
+          mv $tool-${{ env.RELEASE_VERSION}}-linux-amd64 _output/
         done
 
     - name: compute signature
       run: |
-        pushd _out && sha256sum * >> ../SHA256SUMS && mv ../SHA256SUMS . && popd
+        pushd _output && sha256sum * >> ../SHA256SUMS && mv ../SHA256SUMS . && popd
 
     - name: upload build artifacts
       uses: actions/upload-artifact@v2
       with:
         name: build-artifacts
-        path: _out/*
+        path: _output/*
 
     - name: export kind logs
       if: ${{ failure() }}
