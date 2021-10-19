@@ -15,7 +15,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"github.com/openshift-kni/debug-tools/pkg/irqs"
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
 var _ = g.Describe("knit IRQ watch tests", func() {
@@ -196,16 +195,6 @@ func extractCountersFromIRQWatchOutput(b []byte) (irqs.Stats, error) {
 	}
 
 	return irqS.Counters, nil
-}
-
-func stats2JSON(s irqs.Stats) ([]byte, error) {
-	cpus := cpuset.CPUSet{}
-	cnt := struct {
-		Counters irqs.Stats
-	}{
-		Counters: s.ForCPUs(cpus),
-	}
-	return json.Marshal(cnt)
 }
 
 func areCountersEqual(c1, c2 irqs.Stats) bool {
