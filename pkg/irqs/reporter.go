@@ -121,10 +121,6 @@ type irqwatchDuration struct {
 	d time.Duration
 }
 
-func (d irqwatchDuration) MarshalJSON() (b []byte, err error) {
-	return []byte(fmt.Sprintf(`"%s"`, d.d.String())), nil
-}
-
 type irqSummary struct {
 	Elapsed  irqwatchDuration `json:"elapsed"`
 	Counters Stats            `json:"counters"`
