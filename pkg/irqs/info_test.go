@@ -17,14 +17,22 @@
 package irqs_test
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strconv"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/openshift-kni/debug-tools/pkg/irqs"
+	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
 var nullLog = log.New(ioutil.Discard, "", 0)
@@ -81,6 +89,175 @@ func TestReadStats(t *testing.T) {
 	}
 }
 
+func checkInterrupsDiff(src *bufio.Scanner, irqsDiffTestCases [4]int) error {
+	var irqsDiff [4]int
+	i := 0
+	for src.Scan() {
+		stripString := strings.Fields(src.Text())
+		diff, err := strconv.Atoi(stripString[len(stripString)-1:][0])
+		if err != nil {
+			return fmt.Errorf("Error: %v", err)
+		}
+		irqsDiff[i] = diff
+		i++
+	}
+	if irqsDiff != irqsDiffTestCases {
+		return fmt.Errorf("Interrupt difference missmatch %v: %v", irqsDiff, irqsDiffTestCases)
+	}
+	return nil
+}
+
+type irq struct {
+	Timestamp string
+	Counters  irqs.Stats `json:"counters"`
+}
+
+func checkInterrupsDiffJSON(buf bytes.Buffer, irqsDiffTestCases [4]int) error {
+	var irqsDiff [4]int
+	var resultIrq irq
+	if err := json.Unmarshal([]byte(buf.Bytes()), &resultIrq); err != nil {
+		return fmt.Errorf("JSON Parser Error %v", err)
+	}
+	irqsDiff[0] = int(resultIrq.Counters[0]["0"])
+	irqsDiff[1] = int(resultIrq.Counters[1]["1"])
+	irqsDiff[2] = int(resultIrq.Counters[2]["8"])
+	irqsDiff[3] = int(resultIrq.Counters[3]["12"])
+	if irqsDiff != irqsDiffTestCases {
+		return fmt.Errorf("Interrupt difference missmatch %v: %v", irqsDiff, irqsDiffTestCases)
+	}
+	return nil
+}
+
+func TestReportingStatsText(t *testing.T) {
+	var err error
+
+	initStats := fakeStatsInit
+	prevStats := initStats.Clone()
+	lastStats := fakeStatsLast
+
+	var buf bytes.Buffer
+	cpus := cpuset.NewCPUSet(0, 1, 2, 3)
+	irqsDiffTestCases := [4]int{1, 2, 3, 4}
+	jsonOutput := false
+	verboseMode := 2
+	initTs := time.Now()
+	lastTime := initTs.Add(time.Second + 1)
+
+	reporter := irqs.NewReporter(&buf, jsonOutput, verboseMode, cpus)
+
+	reporter.Delta(lastTime, prevStats, lastStats)
+	src := bufio.NewScanner(&buf)
+	err = checkInterrupsDiff(src, irqsDiffTestCases)
+	if err != nil {
+		t.Errorf("Error reporting text: %v", err)
+	}
+
+	reporter.Summary(initTs, initStats, lastStats)
+	src = bufio.NewScanner(&buf)
+	src.Scan()
+	src.Scan() //skip first two lines
+	err = checkInterrupsDiff(src, irqsDiffTestCases)
+	if err != nil {
+		t.Errorf("Error reporting text: %v", err)
+	}
+}
+func TestReportingStatsJSON(t *testing.T) {
+	var err error
+
+	var buf bytes.Buffer
+	cpus := cpuset.NewCPUSet(0, 1, 2, 3)
+	irqsDiffTestCases := [4]int{1, 2, 3, 4}
+	jsonOutput := true
+	verboseMode := 2
+	initTs := time.Now()
+	lastTime := initTs.Add(time.Second + 1)
+
+	initStats := fakeStatsInit
+	prevStats := initStats.Clone()
+	lastStats := fakeStatsLast
+
+	reporter := irqs.NewReporter(&buf, jsonOutput, verboseMode, cpus)
+	reporter.Delta(lastTime, prevStats, lastStats)
+
+	err = checkInterrupsDiffJSON(buf, irqsDiffTestCases)
+	if err != nil {
+		t.Errorf("Error reporting JSON: %v", err)
+	}
+
+	buf.Reset()
+	reporter.Summary(initTs, initStats, lastStats)
+
+	err = checkInterrupsDiffJSON(buf, irqsDiffTestCases)
+	if err != nil {
+		t.Errorf("Error reporting JSON: %v", err)
+	}
+}
+
+type irqAffinity struct {
+	IRQ         int
+	Source      string
+	CPUAffinity []int
+}
+
+func TestReadInfo(t *testing.T) {
+	rootDir, err := ioutil.TempDir("", "test")
+	if err != nil {
+		t.Fatalf("creating temp dir %v", err)
+	}
+	defer os.RemoveAll(rootDir) // clean up
+
+	procDir := filepath.Join(rootDir, "proc")
+	if err := os.MkdirAll(procDir, 0755); err != nil {
+		t.Fatalf("Mkdir(%s) failed: %v", procDir, err)
+	}
+	irqDir := filepath.Join(procDir, "irq", "145")
+	irqAll := filepath.Join(irqDir, "xhci_hcd")
+	if err := os.MkdirAll(irqAll, 0755); err != nil {
+		t.Fatalf("Mkdir(%s) failed: %v", irqDir, err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(irqDir, "smp_affinity_list"), []byte("3,7"), 0644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	flags := uint(0)
+
+	ih := irqs.New(nullLog, procDir)
+	irqInfos, err := ih.ReadInfo(flags)
+	if err != nil {
+		t.Fatalf("error parsing irqs from %q: %v", procDir, err)
+	}
+
+	cpus := cpuset.NewCPUSet(0, 1, 2, 3, 4, 5, 6, 7)
+
+	var irqAffinities []irqAffinity
+	for _, irqInfo := range irqInfos {
+		cpus := irqInfo.CPUs.Intersection(cpus)
+		if cpus.Size() == 0 {
+			continue
+		}
+		if irqInfo.Source == "" {
+			continue
+		}
+		irqAffinities = append(irqAffinities, irqAffinity{
+			IRQ:         irqInfo.IRQ,
+			Source:      irqInfo.Source,
+			CPUAffinity: cpus.ToSlice(),
+		})
+	}
+
+	var irqAffinityTestCases = []irqAffinity{
+		{145, "xhci_hcd", []int{3, 7}},
+	}
+	for i, tt := range irqAffinityTestCases {
+		t.Run(fmt.Sprintf("cpu %d irq %q aff %d", tt.IRQ, tt.Source, tt.CPUAffinity), func(t *testing.T) {
+			v := irqAffinities[i]
+			if v.IRQ != tt.IRQ || v.Source != tt.Source || !reflect.DeepEqual(v.CPUAffinity, tt.CPUAffinity) {
+				t.Errorf("Affinity mismatch got %v expected %v", v.CPUAffinity, tt.CPUAffinity)
+			}
+		})
+	}
+}
+
 const fakeInterrupts string = `            CPU0       CPU1       CPU2       CPU3       
    0:         13          0          0          0  IR-IO-APIC    2-edge      timer
    1:          0         21          0          0  IR-IO-APIC    1-edge      i8042
@@ -127,3 +304,17 @@ const fakeInterrupts string = `            CPU0       CPU1       CPU2       CPU3
  PIN:          0          0          0          0   Posted-interrupt notification event
  NPI:          0          0          0          0   Nested posted-interrupt event
  PIW:          0          0          0          0   Posted-interrupt wakeup event`
+
+var fakeStatsInit irqs.Stats = map[int]irqs.Counter{
+	0: {"0": 13, "1": 0, "8": 0, "12": 0},
+	1: {"0": 0, "1": 21, "8": 0, "12": 0},
+	2: {"0": 0, "1": 0, "8": 1, "12": 0},
+	3: {"0": 0, "1": 0, "8": 0, "12": 713},
+}
+
+var fakeStatsLast irqs.Stats = map[int]irqs.Counter{
+	0: {"0": 14, "1": 0, "8": 0, "12": 0},
+	1: {"0": 0, "1": 23, "8": 0, "12": 0},
+	2: {"0": 0, "1": 0, "8": 4, "12": 0},
+	3: {"0": 0, "1": 0, "8": 0, "12": 717},
+}
