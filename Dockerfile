@@ -1,4 +1,6 @@
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+RUN microdnf install -y hwdata && \
+    microdnf clean -y all
 COPY _output /usr/local/bin
 COPY run.sh /run.sh
 COPY help.sh /help.sh
