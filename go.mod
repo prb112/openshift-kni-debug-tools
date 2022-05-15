@@ -8,6 +8,7 @@ require (
 	github.com/jaypipes/ghw v0.8.1-0.20210605191321-eb162add542b
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
+	github.com/safchain/ethtool v0.2.0
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	k8s.io/klog/v2 v2.30.0

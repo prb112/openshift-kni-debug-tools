@@ -21,6 +21,7 @@ import (
 	"os"
 
 	"github.com/openshift-kni/debug-tools/pkg/knit/cmd"
+	"github.com/openshift-kni/debug-tools/pkg/knit/cmd/ethtool"
 	"github.com/openshift-kni/debug-tools/pkg/knit/cmd/ghw"
 	"github.com/openshift-kni/debug-tools/pkg/knit/cmd/k8s"
 	"github.com/openshift-kni/debug-tools/pkg/knit/cmd/machineinfo"
@@ -33,6 +34,7 @@ func main() {
 		ghw.NewLspciCommand,
 		ghw.NewLstopoCommand,
 		machineinfo.NewMachineInfoCommand,
+		ethtool.NewEthtoolCommand,
 	)
 	if err := root.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
