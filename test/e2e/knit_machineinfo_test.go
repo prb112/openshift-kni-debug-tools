@@ -12,14 +12,14 @@ import (
 
 var _ = g.Describe("knit machineinfo tests", func() {
 
-	var fixtureName = "xeon-multinuma-00"
+	var fixtureName = "dell_2_numa"
 
 	var (
 		dataDir      string
 		snapshotRoot string
 	)
 
-	g.Context("Without isolated CPUs", func() {
+	g.Context("With isolated, reserved CPUs", func() {
 		g.It("Produces the expected machineinfo output", func() {
 			g.Skip("broken until we refresh the machineinfo data")
 
