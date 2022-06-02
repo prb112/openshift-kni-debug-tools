@@ -12,14 +12,14 @@ import (
 
 var _ = g.Describe("knit IRQ affinity tests", func() {
 
-	var fixtureName = "xeon-multinuma-00"
+	var fixtureName = "dell_2_numa"
 
 	var (
 		dataDir      string
 		snapshotRoot string
 	)
 
-	g.Context("Without isolated CPUs", func() {
+	g.Context("With isolated, reserved CPUs", func() {
 		g.It("Produces the expected affinity output", func() {
 			cmdline := []string{
 				filepath.Join(binariesPath, "knit"),
@@ -36,7 +36,6 @@ var _ = g.Describe("knit IRQ affinity tests", func() {
 
 			out, err := cmd.Output()
 			o.Expect(err).ToNot(o.HaveOccurred())
-
 			refPath := filepath.Join(dataDir, "irqaff.json")
 			fmt.Fprintf(g.GinkgoWriter, "reference data at: %q\n", refPath)
 

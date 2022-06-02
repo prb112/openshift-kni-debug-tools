@@ -19,7 +19,7 @@ import (
 
 var _ = g.Describe("knit IRQ watch tests", func() {
 
-	var fixtureName = "xeon-multinuma-00"
+	var fixtureName = "dell_2_numa"
 	var snapshotRoot string
 
 	type cmdOutput struct {
@@ -27,7 +27,7 @@ var _ = g.Describe("knit IRQ watch tests", func() {
 		err error
 	}
 
-	g.Context("Without isolated CPUs", func() {
+	g.Context("With isolated, reserved CPUs", func() {
 		g.It("Produces the expected delta between consecutive irq samples", func() {
 			cmdline := []string{
 				filepath.Join(binariesPath, "knit"),
