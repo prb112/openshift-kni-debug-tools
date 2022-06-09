@@ -8,11 +8,6 @@ all: dist
 .PHONY: build
 build: dist
 
-# legacy CI entry point
-.PHONY: ci-job
-ci-job: test-e2e
-
-# new CI entry points
 .PHONY: ci-job-e2e
 ci-job-e2e: test-e2e
 
