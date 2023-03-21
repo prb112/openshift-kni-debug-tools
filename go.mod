@@ -6,6 +6,7 @@ require (
 	github.com/google/cadvisor v0.43.0
 	github.com/google/go-cmp v0.5.5
 	github.com/jaypipes/ghw v0.8.1-0.20210605191321-eb162add542b
+	github.com/k8stopologyawareschedwg/podfingerprint v0.1.3-0.20230320151543-cac6601de9ff
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
 	github.com/safchain/ethtool v0.2.0
@@ -21,6 +22,7 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.4.17 // indirect
+	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
