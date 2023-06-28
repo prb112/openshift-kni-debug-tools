@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	cpuset "github.com/openshift-kni/debug-tools/pkg/k8s_imported"
 	"io/ioutil"
 	"log"
 	"os"
@@ -32,7 +33,6 @@ import (
 	"time"
 
 	"github.com/openshift-kni/debug-tools/pkg/irqs"
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
 var nullLog = log.New(ioutil.Discard, "", 0)

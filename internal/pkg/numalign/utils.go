@@ -25,7 +25,7 @@ import (
 
 	"github.com/openshift-kni/debug-tools/internal/pkg/vfs"
 
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
+	cpuset "github.com/openshift-kni/debug-tools/pkg/k8s_imported"
 )
 
 func splitCPUList(cpuList string) ([]int, error) {

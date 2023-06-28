@@ -22,7 +22,7 @@ import (
 	"io"
 	"time"
 
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
+	cpuset "github.com/openshift-kni/debug-tools/pkg/k8s_imported"
 )
 
 type Reporter interface {

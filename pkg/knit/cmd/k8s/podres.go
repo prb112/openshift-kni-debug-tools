@@ -23,11 +23,10 @@ import (
 	"os"
 	"time"
 
+	kube "github.com/openshift-kni/debug-tools/pkg/k8s_imported"
+	"github.com/openshift-kni/debug-tools/pkg/knit/cmd"
 	"github.com/spf13/cobra"
 	kubeletpodresourcesv1 "k8s.io/kubelet/pkg/apis/podresources/v1"
-	"k8s.io/kubernetes/pkg/kubelet/apis/podresources"
-
-	"github.com/openshift-kni/debug-tools/pkg/knit/cmd"
 )
 
 // see k/k/test/e2e_node/util.go
@@ -110,7 +109,7 @@ func showPodResources(cmd *cobra.Command, opts *podResOptions, args []string) er
 		return err
 	}
 
-	cli, conn, err := podresources.GetV1Client(opts.socketPath, defaultPodResourcesTimeout, defaultPodResourcesMaxSize)
+	cli, conn, err := kube.GetV1Client(opts.socketPath, defaultPodResourcesTimeout, defaultPodResourcesMaxSize)
 	if err != nil {
 		return err
 	}
