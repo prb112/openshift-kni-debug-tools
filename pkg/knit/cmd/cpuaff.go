@@ -25,8 +25,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	cpuset "github.com/openshift-kni/debug-tools/pkg/k8s_imported"
 	"github.com/openshift-kni/debug-tools/pkg/procs"
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
 type cpuAffOptions struct {

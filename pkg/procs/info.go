@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
+	cpuset "github.com/openshift-kni/debug-tools/pkg/k8s_imported"
 
 	"github.com/openshift-kni/debug-tools/pkg/fswrap"
 )
