@@ -60,6 +60,8 @@ const (
 	cpuDirPattern  = "cpu*[0-9]"
 	nodeDirPattern = "node*[0-9]"
 
+	nodeDistance = "distance"
+
 	//HugePagesNrFile name of nr_hugepages file in sysfs
 	HugePagesNrFile = "nr_hugepages"
 
@@ -80,6 +82,15 @@ func NewRelocatableSysFs(root string) sysfs.SysFs {
 	return RelocatableSysFs{
 		root: root,
 	}
+}
+
+func (fs RelocatableSysFs) GetDistances(nodePath string) (string, error) {
+	path := filepath.Join(fs.root, nodePath, nodeDistance)
+	nodeDistances, err := ioutil.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(nodeDistances)), err
 }
 
 func (fs RelocatableSysFs) GetNodesPaths() ([]string, error) {
