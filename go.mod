@@ -1,6 +1,6 @@
 module github.com/openshift-kni/debug-tools
 
-go 1.18
+go 1.20
 
 require (
 	github.com/google/cadvisor v0.46.0
