@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi9/openssl:latest
 RUN microdnf install -y hwdata && \
     microdnf clean -y all
 COPY _output /usr/local/bin
