@@ -24,7 +24,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	cpuset "github.com/openshift-kni/debug-tools/pkg/k8s_imported"
+	cpuset "k8s.io/utils/cpuset"
 )
 
 type KnitOptions struct {

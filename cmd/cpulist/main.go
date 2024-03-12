@@ -25,8 +25,8 @@ import (
 
 	flag "github.com/spf13/pflag"
 
-	cpuset "github.com/openshift-kni/debug-tools/pkg/k8s_imported"
 	"github.com/openshift-kni/debug-tools/pkg/procs"
+	cpuset "k8s.io/utils/cpuset"
 )
 
 func main() {
@@ -76,17 +76,17 @@ func allowedCPUsOrDie(procfsRoot string) cpuset.CPUSet {
 		os.Exit(4)
 	}
 	// consolidate all the cpus:
-	b := cpuset.NewBuilder()
+	var cpuIDs []int
 	for _, tidInfo := range info.TIDs {
 		for _, cpuId := range tidInfo.Affinity {
-			b.Add(cpuId)
+			cpuIDs = append(cpuIDs, cpuId)
 		}
 	}
-	return b.Result()
+	return cpuset.New(cpuIDs...)
 }
 
 func printCPUList(cpus cpuset.CPUSet) {
-	for _, cpu := range cpus.ToSlice() {
+	for _, cpu := range cpus.List() {
 		fmt.Printf("%v\n", cpu)
 	}
 }

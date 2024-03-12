@@ -30,7 +30,7 @@ import (
 
 	"github.com/google/cadvisor/utils/sysfs"
 
-	cpuset "github.com/openshift-kni/debug-tools/pkg/k8s_imported"
+	cpuset "k8s.io/utils/cpuset"
 )
 
 const (
@@ -402,7 +402,7 @@ func isCPUOnline(path string, cpuID uint16) (bool, error) {
 		return false, err
 	}
 
-	for _, cpu := range cpus.ToSlice() {
+	for _, cpu := range cpus.List() {
 		if uint16(cpu) == cpuID {
 			return true, nil
 		}

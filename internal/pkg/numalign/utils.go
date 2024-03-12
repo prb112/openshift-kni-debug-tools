@@ -25,7 +25,7 @@ import (
 
 	"github.com/openshift-kni/debug-tools/internal/pkg/vfs"
 
-	cpuset "github.com/openshift-kni/debug-tools/pkg/k8s_imported"
+	cpuset "k8s.io/utils/cpuset"
 )
 
 func splitCPUList(cpuList string) ([]int, error) {
@@ -33,7 +33,7 @@ func splitCPUList(cpuList string) ([]int, error) {
 	if err != nil {
 		return nil, err
 	}
-	return cpus.ToSlice(), nil
+	return cpus.List(), nil
 }
 
 func GetAllowedCPUList(fs vfs.VFS, statusFile string) ([]int, error) {
