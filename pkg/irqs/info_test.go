@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	cpuset "github.com/openshift-kni/debug-tools/pkg/k8s_imported"
 	"io/ioutil"
 	"log"
 	"os"
@@ -31,6 +30,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	cpuset "k8s.io/utils/cpuset"
 
 	"github.com/openshift-kni/debug-tools/pkg/irqs"
 )
@@ -136,7 +137,7 @@ func TestReportingStatsText(t *testing.T) {
 	lastStats := fakeStatsLast
 
 	var buf bytes.Buffer
-	cpus := cpuset.NewCPUSet(0, 1, 2, 3)
+	cpus := cpuset.New(0, 1, 2, 3)
 	irqsDiffTestCases := [4]int{1, 2, 3, 4}
 	jsonOutput := false
 	verboseMode := 2
@@ -165,7 +166,7 @@ func TestReportingStatsJSON(t *testing.T) {
 	var err error
 
 	var buf bytes.Buffer
-	cpus := cpuset.NewCPUSet(0, 1, 2, 3)
+	cpus := cpuset.New(0, 1, 2, 3)
 	irqsDiffTestCases := [4]int{1, 2, 3, 4}
 	jsonOutput := true
 	verboseMode := 2
@@ -227,7 +228,7 @@ func TestReadInfo(t *testing.T) {
 		t.Fatalf("error parsing irqs from %q: %v", procDir, err)
 	}
 
-	cpus := cpuset.NewCPUSet(0, 1, 2, 3, 4, 5, 6, 7)
+	cpus := cpuset.New(0, 1, 2, 3, 4, 5, 6, 7)
 
 	var irqAffinities []irqAffinity
 	for _, irqInfo := range irqInfos {
@@ -241,7 +242,7 @@ func TestReadInfo(t *testing.T) {
 		irqAffinities = append(irqAffinities, irqAffinity{
 			IRQ:         irqInfo.IRQ,
 			Source:      irqInfo.Source,
-			CPUAffinity: cpus.ToSlice(),
+			CPUAffinity: cpus.List(),
 		})
 	}
 
