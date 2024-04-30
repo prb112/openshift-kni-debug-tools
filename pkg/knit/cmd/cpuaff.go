@@ -25,8 +25,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	cpuset "github.com/openshift-kni/debug-tools/pkg/k8s_imported"
 	"github.com/openshift-kni/debug-tools/pkg/procs"
+	cpuset "k8s.io/utils/cpuset"
 )
 
 type cpuAffOptions struct {
@@ -73,7 +73,7 @@ func showCPUAffinity(cmd *cobra.Command, knitOpts *KnitOptions, opts *cpuAffOpti
 		}
 		procInfo, err := ph.FromPID(pid)
 		for tid, tidInfo := range procInfo.TIDs {
-			threadCpus := cpuset.NewCPUSet(tidInfo.Affinity...)
+			threadCpus := cpuset.New(tidInfo.Affinity...)
 
 			cpus := threadCpus.Intersection(knitOpts.Cpus)
 			if cpus.Size() != 0 {
@@ -95,7 +95,7 @@ func showCPUAffinity(cmd *cobra.Command, knitOpts *KnitOptions, opts *cpuAffOpti
 		for _, tid := range sortedTids(procInfo.TIDs) {
 			tidInfo := procInfo.TIDs[tid]
 
-			threadCpus := cpuset.NewCPUSet(tidInfo.Affinity...)
+			threadCpus := cpuset.New(tidInfo.Affinity...)
 			cpus := threadCpus.Intersection(knitOpts.Cpus)
 			if cpus.Size() == 0 {
 				continue
@@ -105,7 +105,7 @@ func showCPUAffinity(cmd *cobra.Command, knitOpts *KnitOptions, opts *cpuAffOpti
 				TID:         tid,
 				ProcessName: procInfo.Name,
 				ThreadName:  tidInfo.Name,
-				CPUAffinity: cpus.ToSlice(),
+				CPUAffinity: cpus.List(),
 			})
 		}
 	}

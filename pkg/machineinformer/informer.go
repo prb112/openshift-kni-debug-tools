@@ -40,7 +40,7 @@ func (handle *Handle) Run() {
 
 	info, err = GetRaw(handle.RootDirectory)
 	if err != nil {
-		klog.Fatalf("Cannot get machine info: %v")
+		klog.Fatalf("Cannot get machine info: %v", info)
 	}
 
 	if !handle.RawOutput {

@@ -25,7 +25,7 @@ import (
 
 	"github.com/openshift-kni/debug-tools/pkg/irqs"
 	softirqs "github.com/openshift-kni/debug-tools/pkg/irqs/soft"
-	cpuset "github.com/openshift-kni/debug-tools/pkg/k8s_imported"
+	cpuset "k8s.io/utils/cpuset"
 )
 
 type irqAffOptions struct {
@@ -98,7 +98,7 @@ func showIRQAffinity(cmd *cobra.Command, knitOpts *KnitOptions, opts *irqAffOpti
 		irqAffinities = append(irqAffinities, irqAffinity{
 			IRQ:         irqInfo.IRQ,
 			Source:      irqInfo.Source,
-			CPUAffinity: cpus.ToSlice(),
+			CPUAffinity: cpus.List(),
 		})
 	}
 
@@ -124,17 +124,18 @@ func showSoftIRQAffinity(cmd *cobra.Command, knitOpts *KnitOptions, opts *irqAff
 	keys := softirqs.Names()
 	for _, key := range keys {
 		counters := info.Counters[key]
-		cb := cpuset.NewBuilder()
+		var cb []int
 		for idx, counter := range counters {
 			if counter > 0 {
-				cb.Add(idx)
+				cb = append(cb, idx)
+
 			}
 		}
-		usedCPUs := knitOpts.Cpus.Intersection(cb.Result())
+		usedCPUs := knitOpts.Cpus.Intersection(cpuset.New(cb...))
 
 		softirqAffinities = append(softirqAffinities, softirqAffinity{
 			SoftIRQ:     key,
-			CPUAffinity: usedCPUs.ToSlice(),
+			CPUAffinity: usedCPUs.List(),
 		})
 	}
 
